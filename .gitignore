@@ -18,3 +18,16 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+
+log/access.log
+log/auth.log
+log/error.log
+SafeExec/os-detect
+SafeExec/safeexec
+public
+snaplets/sqlite-auth/
+site_key.txt
+stack.yaml.lock
+submissions.db
+codex.cabal
+events.cfg

@@ -11,6 +11,7 @@ extra-deps:
   - snap-web-routes-0.5.1.0
   - snaplet-sqlite-simple-1.0.0.2
   - fast-myers-diff-0.0.1
+  - http-conduit-2.3.8 
 
 resolver: lts-21.9
 

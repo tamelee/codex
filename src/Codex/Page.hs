@@ -10,8 +10,10 @@ module Codex.Page where
 import           Text.Pandoc hiding (Code)
 import qualified Text.Pandoc ( Inline(Code) )
 import           Text.Pandoc.Walk
+
 import qualified Text.Pandoc.Builder as P
 
+-- import           Text.Pandoc.Highlighting (monochrome)
 
 import           Text.XmlHtml
 import           Text.Blaze.Renderer.XmlHtml
@@ -280,6 +282,7 @@ docWarnings msgs
       [Para [Str "WARNING:", Space, Str (T.pack $ show msg)] | msg <- msgs]]
 
 
+
 errorBlock :: [Block] -> Block
 errorBlock = Div ("", ["errors"],[]) 
 
@@ -308,6 +311,95 @@ formatDiffs txt1 txt2
     transform (Second inserted) = P.spanWith ("",["inserted"],[]) (pretext inserted)
     transform (Both common _)   = pretext common
 
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++
+-- | PI Improvements                              
+-- ++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- | Write a Pandoc document to a Markdown file
+
+writeMarkdownFile :: MonadIO m => FilePath -> Pandoc -> m ()
+writeMarkdownFile filepath (Pandoc (Meta metaMap) blocks) = liftIO $ do
+  let (blockMetaMap, yamlMetaMap) = Map.partition isMetaBlocks metaMap
+      yamlText = renderYamlMeta (Meta yamlMetaMap)
+
+      -- YAML on top + Normal blocks
+      contentBlocks = RawBlock "markdown" yamlText : blocks
+
+      -- Render each MetaBlock as a YAML section at the end
+      metaBlockTexts = map renderBlockMeta (reverse (Map.toList blockMetaMap))
+      metaBlockRawBlocks = map (RawBlock "markdown") metaBlockTexts
+
+      -- Builds the final document
+      fullDoc = Pandoc nullMeta (contentBlocks ++ metaBlockRawBlocks)
+
+      writerOpts = def
+        { writerExtensions = pandocExtensions
+        , writerSetextHeaders = False
+        }
+
+  case runPure (writeMarkdown writerOpts fullDoc) of
+    Left err  -> error $ "Error writing Markdown file: " ++ show err
+    Right txt -> T.writeFile filepath txt
+
+  where
+    isMetaBlocks :: MetaValue -> Bool
+    isMetaBlocks (MetaBlocks _) = True
+    isMetaBlocks _              = False
+
+    renderBlockMeta :: (Text, MetaValue) -> Text
+    renderBlockMeta (key, MetaBlocks bs) =
+      let blockContent = stringifyBlocks bs
+          indented = T.unlines (map ("  " <>) (T.lines blockContent))
+      in "---\n" <> key <> ": |\n" <> indented <> "...\n"
+    renderBlockMeta _ = ""
+
+    stringifyBlocks :: [Block] -> Text
+    stringifyBlocks bs =
+      "~~~\n" <> T.concat (map blockToText bs) <> "~~~"
+
+    blockToText :: Block -> Text
+    blockToText (Plain ils)    = stringify ils <> "\n"
+    blockToText (Para ils)     = stringify ils <> "\n\n"
+    blockToText (CodeBlock _ c) = c <> "\n"
+    blockToText _              = ""  
+
+    stringify :: [Inline] -> Text
+    stringify = T.concat . map inlineToText
+
+    inlineToText :: Inline -> Text
+    inlineToText (Str t) = t
+    inlineToText Space   = " "
+    inlineToText _       = ""
+
+-- | Render YAML from normal metadata
+renderYamlMeta :: Meta -> Text
+renderYamlMeta (Meta metaMap) =
+  let pairs = map renderPair (Map.toList metaMap)
+      yaml = "---\n" <> T.unlines pairs <> "..."
+  in yaml
+  where
+    renderPair :: (Text, MetaValue) -> Text
+    renderPair (k, v) = k <> ": " <> renderValue v
+
+    renderValue :: MetaValue -> Text
+    renderValue (MetaString s)    = s
+    renderValue (MetaBool True)   = "true"
+    renderValue (MetaBool False)  = "false"
+    renderValue (MetaList xs)     = "[" <> T.intercalate ", " (map renderValue xs) <> "]"
+    renderValue (MetaInlines ils) = stringify ils
+    renderValue (MetaMap m)       = "{" <> T.intercalate ", " (map renderPair (Map.toList m)) <> "}"
+    renderValue (MetaBlocks _)    = "<block>"  
+
+    stringify :: [Inline] -> Text
+    stringify = T.concat . map inlineToText
+
+    inlineToText :: Inline -> Text
+    inlineToText (Str t) = t
+    inlineToText Space   = " "
+    inlineToText _       = ""
+    
+-- ++++++++++++++++++++++++++++++++++++++++++++++++
 
 -- change the order of diffs so that deletions come before insertions
 reorderDiffs :: [Diff a] -> [Diff a]

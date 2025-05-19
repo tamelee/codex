@@ -437,4 +437,15 @@ div.twocolumn div.left {
 div.twocolumn div.right {
     width: 50%;
     float: right;    
+
+/* ------ PI Improvements ------ */
+#translation-select {
+    display: flex;
+    align-items: center;
+    margin-left: 0.5em;
+    margin-top: 0.625em;
+}
+
+#language-select {
+    margin-left: 0.5em;
 }

@@ -12,6 +12,18 @@
     <li><button class="tablinks" onclick="openTab(event, 'description-tab')" id="description">Description</button></li>
     <li><button class="tablinks" onclick="openTab(event, 'editor-tab')">Editor</button></li>
     <li><button class="tablinks" onclick="openTab(event, 'submissions-tab')">Submissions</button><li>
+    <li>
+      <div id="translation-select">
+        <label for="language-select"> Translate:</label>
+        <select id="language-select" onchange="changeLanguage()">
+          <option value="">Original</option>
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+    </li>
   </apply>
   <div id="description-tab" class="tabcontents">
     <page-description/>
@@ -51,6 +63,7 @@
 
 <script type="text/javascript" src="/static/js/tabview.js"/>
 <script type="text/javascript" src="/static/js/ace-start.js"/>
+<script type="text/javascript" src="/static/js/changelang.js"/>
 <language-constants-js/>
 <default-language-js/>
 <script type="text/javascript">
