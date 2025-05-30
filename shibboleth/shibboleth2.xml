@@ -33,16 +33,12 @@
             entityID property and adjust discoveryURL to point to discovery service.
             You can also override entityID on /Login query string, or in RequestMap/htaccess.
             -->
-            <SSO entityID="https://codex.local/shibboleth"
-                 discoveryProtocol="SAMLDS" discoveryURL="https://ds.example.org/DS/WAYF">
-              SAML2
+            <SSO entityID="https://wayf.up.pt/idp/shibboleth" discoveryProtocol="SAMLDS" >
+                SAML2
             </SSO>
 
             <!-- SAML and local-only logout. -->
             <Logout>SAML2 Local</Logout>
-          
-            <!-- Extension service that generates "approximate" metadata based on SP configuration. -->
-            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
 
             <!-- Status reporting service. -->
             <Handler type="Status" Location="/Status" acl="127.0.0.1 ::1"/>
@@ -58,11 +54,14 @@
             helpLocation="/about.html"
             styleSheet="/shibboleth-sp/main.css"/>
 
+        <!-- <MetadataProvider type="XML" url="https://wayf.up.pt/idp/shibboleth" backingFilePath="/etc/shibboleth/idp-up-metadata.xml" reloadInterval="7200"/>  -->
+        <MetadataProvider type="XML" url="https://wayf.up.pt/idp/shibboleth" backingFilePath="/etc/shibboleth/idp-up-metadata.xml" reloadInterval="7200"/>
 
         <AttributeExtractor type="XML" validate="true" reloadChanges="false" path="attribute-map.xml"/>
         <AttributeFilter type="XML" validate="true" path="attribute-policy.xml"/>
 
-        <CredentialResolver type="File" key="sp-key.pem" certificate="sp-cert.pem"/>
+        <!-- <CredentialResolver type="File" key="sp-key.pem" certificate="sp-cert.pem"/>   -->
+        <CredentialResolver type="File" key="/etc/shibboleth/sp-key.pem" certificate="/etc/shibboleth/sp-cert.pem"/>
     </ApplicationDefaults>
     
     <SecurityPolicyProvider type="XML" validate="true" path="security-policy.xml"/>

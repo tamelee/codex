@@ -36,6 +36,7 @@ shib-keys:
 config:
 	sudo cp codex.local.conf $(APACHE_SITES)/codex.local.conf
 	sudo cp shibboleth2.xml $(SHIB_DEST)/shibboleth2.xml
+	sudo cp attribute-map.xml /etc/shibboleth/attribute-map.xml
 
 # Ativa o site e adiciona ao /etc/hosts se necessário
 enable:
@@ -46,3 +47,8 @@ enable:
 restart:
 	sudo systemctl restart apache2
 	sudo systemctl restart shibd
+
+
+# Talvez pode ser necessario atribuir permissoes 
+# sudo chmod 644 /etc/shibboleth/sp-key.pem
+# sudo chmod 644 /etc/shibboleth/idp-up-metadata.xml
