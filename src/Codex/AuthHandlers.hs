@@ -106,17 +106,48 @@ handleShibbolethLogin = do
   let fullUrl = shibbolethEndpoint ++ "?target=" ++ callbackUrl
   redirect (T.encodeUtf8 $ T.pack fullUrl)
 
+
 handleShibbolethCallback :: Codex ()
 handleShibbolethCallback = do
-  -- get shibboleth attribute
-  commonName <- getResponseHeader "commonName"
-  nMec <- getResponseHeader "nMec"
-  
-  -- terminal stdout
-  liftIO $ do
-    putStrLn "Shibboleth login callback:"
-    putStrLn $ "commonName: " ++ show commonName
-    putStrLn $ "nMec: " ++ show nMec
+    -- get shibboleth attributes
+    mLogin <- getResponseHeader "nMec"
+    mFullName <- getResponseHeader "commonName"
+
+    case (mLogin, mFullName) of
+      (Just loginRaw, Just fullNameRaw) -> do
+          let login = T.decodeUtf8 loginRaw
+              fullName = T.decodeUtf8 fullNameRaw
+              email = Just $ login <> "@up.pt"
+
+          unless (T.null login) $ do
+              result <- with auth $ do
+                  mUser <- withBackend (\r -> liftIO $ lookupByLogin r login)
+                  case mUser of
+                      Just u  -> return (Right u)
+                      Nothing -> do
+                          let meta = HM.fromList [("fullname", String fullName)]
+                          let newUser = defAuthUser
+                                  { userLogin = login
+                                  , userEmail = email
+                                  , userMeta  = meta
+                                  }
+                          saveUser newUser
+
+              case result of
+                  Right user -> do
+                      with auth (forceLogin user)
+                      redirectURL home
+                  Left err -> do
+                      loginForm "_login" (Just err)
+                      redirectURL Login
+
+          when (T.null login) $ do
+              logMsg "Error: Empty login received from Shibboleth"
+              redirectURL Login
+
+      _ -> do
+          logMsg "Error: Required headers not found (nMec and commonName)"
+          redirectURL Login
 
 
 getResponseHeader :: ByteString -> Codex (Maybe ByteString)
