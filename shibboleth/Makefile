@@ -23,6 +23,7 @@ install:
 
 # Gera certificado SSL para o Apache
 certs:
+	sudo mkdir -p /etc/apache2/ssl/ && \
 	sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 		-keyout /etc/apache2/ssl/codex.local.key \
 		-out /etc/apache2/ssl/codex.local.crt \
@@ -49,6 +50,13 @@ restart:
 	sudo systemctl restart shibd
 
 
+# -------------------
+# Altera a chave e certificado Shibboleth SP pela correta
+# sudo cp sp-cert.pem /etc/shibboleth/sp-cert.pem
+# sudo cp sp-key.pem /etc/shibboleth/sp-key.pem
+
 # Talvez pode ser necessario atribuir permissoes 
 # sudo chmod 644 /etc/shibboleth/sp-key.pem
 # sudo chmod 644 /etc/shibboleth/idp-up-metadata.xml
+# -------------------
+

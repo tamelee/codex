@@ -41,6 +41,7 @@ data AppUrl =
   | Register
   | Page [FilePath]        -- ^ exercise page or other file
   | Report SubmitId        -- ^ report for previous submission
+  | Shibboleth	           -- ^ shibboleth sso login
   -- following are for adminstrator only
   | Files [FilePath]          -- ^ file browser 
   | SubmissionList            -- ^ submissions list

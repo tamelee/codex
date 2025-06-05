@@ -6,7 +6,8 @@ module Codex.AuthHandlers (
   handleLogin,
   handleLogout,
   handleRegister,
-  
+  handleShibbolethLogin,
+  handleShibbolethCallback,
   ) where
 
 import           Data.ByteString.UTF8 (ByteString)
@@ -31,6 +32,7 @@ import           Snap.Snaplet.Router
 import qualified Heist.Interpreted as I
 
 import qualified Data.Configurator as Configurator
+import qualified Data.CaseInsensitive as CI
 
 import           Codex.Types
 import           Codex.Utils
@@ -92,6 +94,34 @@ loginLdapUser ldapConf user passwd = do
       redirectURL home
 
 
+-- ++++++++++++++++++++++++++++++++++++++++++++++++
+-- | PI Improvements                              
+-- ++++++++++++++++++++++++++++++++++++++++++++++++
+
+handleShibbolethLogin :: Codex ()
+handleShibbolethLogin = do
+  conf <- getSnapletUserConfig
+  shibbolethEndpoint <- liftIO $ Configurator.require conf "shibboleth_endpoint"
+  callbackUrl <- liftIO $ Configurator.require conf "shibboleth_callback_endpoint"
+  let fullUrl = shibbolethEndpoint ++ "?target=" ++ callbackUrl
+  redirect (T.encodeUtf8 $ T.pack fullUrl)
+
+handleShibbolethCallback :: Codex ()
+handleShibbolethCallback = do
+  -- get shibboleth attribute
+  commonName <- getResponseHeader "commonName"
+  nMec <- getResponseHeader "nMec"
+  
+  -- terminal stdout
+  liftIO $ do
+    putStrLn "Shibboleth login callback:"
+    putStrLn $ "commonName: " ++ show commonName
+    putStrLn $ "nMec: " ++ show nMec
+
+
+getResponseHeader :: ByteString -> Codex (Maybe ByteString)
+getResponseHeader name = do
+  getHeader (CI.mk name) <$> getRequest
 
 ------------------------------------------------------------------------------
 

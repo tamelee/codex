@@ -54,7 +54,7 @@ import           Data.Configurator.Types (Config)
 import           Codex.AdminHandlers
 import           Codex.Application (Codex, App(..), AppUrl)
 import qualified Codex.Application as App
-import           Codex.AuthHandlers
+import           Codex.AuthHandlers 
 import           Codex.Config
 import qualified Codex.Db           as  Db
 import           Codex.Page
@@ -78,20 +78,8 @@ handlePage rqpath = do
   method GET (handleGet uid rqpath <|> notFound) <|>
     method POST (handlePost uid rqpath <|> badRequest)
 
--- | handle GET requests
---handleGet uid rqpath = do
---  root <- getDocumentRoot
---  let filepath = root </> rqpath
---  guardFileExists filepath
---  let mime = fileType mimeTypes filepath
---  if mime == "text/markdown" then do
---    page <- readMarkdownFile filepath
---    Handlers{handleView} <- gets _handlers
---    withSplices (urlSplices rqpath) $ handleView uid rqpath page
---    else
---    -- serve the file if it is not markdown 
---    serveFileAs mime filepath
 
+-- | handle GET requests
 -- ++++++++++++++++++++++++++++++++++++++++++++++++
 -- | PI Improvements                              
 -- ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -178,6 +166,7 @@ routes :: [(ByteString, Codex ())]
 routes =
   [ ("",        routeWith routeAppUrl)
   , ("/static", (getStaticRoot >>= serveDirectory) <|> notFound)
+  , ("/shibboleth-callback", handleShibbolethCallback)
   ]
 
 
@@ -190,6 +179,7 @@ routeAppUrl appUrl =
     App.Register -> handleRegister 
     App.Page path -> handlePage (joinPath path)
     App.Report sid -> handleGetReport sid 
+    App.Shibboleth -> handleShibbolethLogin
     App.Files path -> handleBrowse (joinPath path)
     App.SubmissionAdmin sid -> handleSubmissionAdmin sid
     App.SubmissionList-> handleSubmissionList
@@ -288,6 +278,7 @@ staticSplices = do
   "home" ## urlSplice (App.Page ["index.md"])
   "files" ## urlSplice (App.Files [])
   "submissionList" ## urlSplice App.SubmissionList
+  "shibboleth" ## urlSplice App.Shibboleth
   "version" ## versionSplice
   "timeNow" ## nowSplice
   "if-evaluating" ## return []
@@ -296,5 +287,8 @@ staticSplices = do
   "loggedInName" ## loggedInName App.auth
   "ifAdmin" ## do mbAu <- lift (withTop App.auth currentUser)
                   I.ifElseISplice (maybe False isAdmin mbAu)
-
+  "ifShibbolethError" ## do
+        err <- getParam "error"
+        I.ifElseISplice (err == Just "shibboleth_missing_attributes" ||
+                         err == Just "shibboleth_create_failed")
 

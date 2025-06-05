@@ -23,7 +23,17 @@
   </table>
 </form>
 
-<div class="errors"><p><loginError/></p></div>
+<form method="GET" action="${shibboleth}">
+  <input type="submit" value="U.Porto Login">
+</form>
+
+<div class="errors">
+  <p><loginError/></p>
+  <ifShibbolethError>
+    <p class="shibboleth-error">There was an error with UP Login. Please try again or use other option.</p>
+  </ifShibbolethError>
+</div>
+
 </apply>
 
 <apply template="_browse"/>

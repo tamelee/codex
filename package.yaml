@@ -57,6 +57,7 @@ dependencies:
 - regex-compat
 - fast-myers-diff
 - http-conduit
+- case-insensitive
 
 executables:
   codex-server:
