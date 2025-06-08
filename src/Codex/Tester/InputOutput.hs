@@ -36,14 +36,21 @@ import qualified Text.Pandoc.Builder as P
 --
 data Build =
   forall exec.
-  Build { checkLanguage :: Language -> Bool
-        , makeExec :: FilePath -> Code -> IO exec
-        , runExec  :: exec
-                   -> Maybe FilePath   -- working dir
-                   -> Text             -- stdin
-                   -> IO (ExitCode, Text, Text)  -- status, stdout, stderr
+  Build { checkLanguage :: Language -> Bool,
+          makeExec :: FilePath -> Code -> IO exec,
+          runExec  :: FilePath
+                   -> Maybe FilePath
+                   -> [Text]
+                   -> Text
+                   -> IO (ExitCode, Text, Text)
         }
 
+runExec :: FilePath -> Maybe FilePath -> [Text] -> Text -> IO (ExitCode, Text, Text)
+runExec exe_file workingDir args stdin = do
+  let nsjailCmd = "nsjail --config /path/to/nsjail.cfg --"
+  let fullCommand = nsjailCmd ++ " " ++ exe_file
+  (exitCode, stdout, stderr) <- readProcessWithExitCode fullCommand (map T.unpack args) (T.unpack stdin)
+  return (exitCode, T.pack stdout, T.pack stderr)
 
 -- | builder for C programs
 --
@@ -60,8 +67,11 @@ clangBuild = do
         chmod readable c_file
         runProcess (Just limits) cc (cc_args ++ [c_file, "-o", exe_file])
         return exe_file
-  let run exe_file dir stdin = do
-        safeExec limits exe_file dir [] stdin
+
+  let run exe_file dir args stdin = do
+  	let nsjailCmd = "nsjail --config /path/to/nsjail.cfg --"
+  	let fullCommand = T.pack nsjailCmd <> T.pack exe_file
+  	safeExec limits fullCommand dir args stdin  
   return (Build (=="c") make run)
 
 
@@ -175,25 +185,38 @@ stdioTester Build{..} = tester "stdio" $ do
         return (tagWith Public r1 <> tagWith Private r2)
 
 
--- run tests until the 1st failure
-runTests :: (Text -> IO (ExitCode, Text, Text))   -- action 
-         -> [(FilePath, FilePath)]  -- ^ input file path, output file path
-         -> IO Result  
-runTests _ [] = mempty
-runTests action tests
-  = loop 1 tests
+runTests ::
+  ([Text] -> Text -> IO (ExitCode, Text, Text)) ->
+  [(Maybe FilePath, FilePath, FilePath)] ->
+  -- ^ optional file with cmdline args, input, output
+  IO Result
+runTests action tests =
+  loop 1 tests
   where
     total = length tests
-    loop _ []
-      = return $ accepted $ P.plain $ P.text
-               $ T.pack (show total) <>  " tests passed."
-    loop n ((in_file, out_file) : tests) = do
-      result <- runTest action in_file out_file
+    loop _ [] =
+      return $ accepted $ "Passed " <> T.pack (show total) <> " tests"
+    loop n ((opt_arg_file, in_file, out_file) : tests) = do
+      in_txt <- T.readFile in_file
+      out_txt <- T.readFile out_file
+      arg_str <- maybe (return "") readFile opt_arg_file
+      args <- map T.pack <$> parseArgs arg_str
+
+      result <- classify in_txt out_txt <$> action args in_txt
       if resultStatus result == Accepted then
         loop (n+1) tests
-        else
-        return result
-               
+      else
+        return (numberResult n total arg_str result)
+
+          
+numberResult :: Int -> Int -> String -> Result -> Result
+numberResult num total args Result{..}
+  = Result resultStatus (test <> resultReport)
+  where test
+          = T.pack (printf "*** Test %d / %d ***\n\n" num total) <>
+          "Command-line arguments:\n" <> T.pack args <> "\n"
+          
+
 
 -- run a single test case
 runTest :: (Text -> IO (ExitCode, Text, Text))
