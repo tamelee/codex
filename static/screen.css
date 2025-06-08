@@ -122,7 +122,8 @@ ol.submissions:after {
    padding-right: 1em;
    padding-top: 1em;
    padding-bottom: 1em;
-   background-color: cyan;
+   background-color: #37706D;
+   color: white;
    z-index: 10;
 }
 
@@ -135,7 +136,7 @@ ol.submissions:after {
     width: auto;
     height: 1.5em;
     text-align: right;
-    background-color: cyan;
+    background-color: #37706D;
 }
 
 /* Tool tips */
@@ -215,13 +216,60 @@ ol.submissions:after {
     width: auto;
     height: 1em;
     clear: both;
-    background-color: cyan;
+    background-color: #003230;
+    color: white;
     padding-top: 2ex;
     padding-bottom: 2ex;
     margin-left: 0;
     margin-right: 0;
     padding-left: 1em;
 }
+
+
+/* ------ PI Improvements ------ */
+#footer a {
+    color: white;
+}
+
+
+.signin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signin input[type="text"],
+.signin input[type="password"] {
+  padding: 6px 10px;
+  border: 1px solid #000;
+  border-radius: 5px;
+  font-size: 1em;
+  margin-left: 8px;
+}
+
+.signin input[type="submit"][value="Begin session"] {
+  margin-top: 18px;
+  padding: 10px 35px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1em;
+  cursor: pointer;
+  background-color: #37706D;
+  color: white;
+}
+
+.signin input[type="submit"][value="U.Porto Login"] {
+  margin-top: 10px;
+  padding: 10px 35px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1em;
+  cursor: pointer;
+  background-color: #003230;
+  color: white;
+  margin-top: 10px;
+}
+/* --------------------------- */
 
 
 pre {
@@ -449,3 +497,5 @@ div.twocolumn div.right {
 #language-select {
     margin-left: 0.5em;
 }
+
+
