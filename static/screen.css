@@ -67,17 +67,22 @@ ul.menubar li a {
     text-align: center;
     text-decoration: none;
     padding: 10px 10px;
+    color: white;
+}
+
+ul.menubar li button {
+    color: white;
 }
 
 ul.menubar li a:hover {
-    background-color: lightcyan;
-    color: black;
+    background-color: #7FB8B6;
+    color: #37706D;
 }
 
 
 ul.menubar li button:hover {
-    background-color: lightcyan;
-    color: black;
+    background-color: #7FB8B6;
+    color: #37706D;
 }
 
 ol.submissions {
@@ -104,16 +109,15 @@ ol.submissions:after {
     padding-top: 3em;
     margin-left: 1em;
     margin-right: 1em;
+    margin-top: 1em;
     width: auto;
     height: auto;
 }
 
-
-
 #actions {
    position: fixed;
    width: auto;
-   height: 1.5em;
+   height: auto;
    left: 0em;
    right: 0em;
    top: 0em;
@@ -129,14 +133,16 @@ ol.submissions:after {
 
 #uppercorner {
     position: fixed;
-    top: 0em;
+    top: 1em;
     right: 0em;
     padding-right: 1em;
     padding-top: 1em;
-    width: auto;
-    height: 1.5em;
+    max-width: 50%; 
+    height: auto; 
     text-align: right;
     background-color: #37706D;
+    white-space: normal; 
+    word-wrap: break-word;
 }
 
 /* Tool tips */
@@ -236,11 +242,12 @@ ol.submissions:after {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 3em;
 }
 
 .signin input[type="text"],
 .signin input[type="password"] {
-  padding: 6px 10px;
+  padding: 6px 6px;
   border: 1px solid #000;
   border-radius: 5px;
   font-size: 1em;
@@ -259,7 +266,8 @@ ol.submissions:after {
 }
 
 .signin input[type="submit"][value="U.Porto Login"] {
-  margin-top: 10px;
+  margin-top: 4px;
+  margin-left: 6px;
   padding: 10px 35px;
   border: none;
   border-radius: 10px;
@@ -267,8 +275,29 @@ ol.submissions:after {
   cursor: pointer;
   background-color: #003230;
   color: white;
-  margin-top: 10px;
 }
+
+
+#translation-select {
+    display: flex;
+    align-items: center;
+    margin-left: 0.5em;
+    margin-top: 0.625em;
+    color: white;
+}
+
+#language-select {
+    margin-left: 0.75em;
+}
+
+
+#content ul span {
+    border: none;
+}
+
+
+
+
 /* --------------------------- */
 
 
@@ -425,8 +454,7 @@ button.tablinks {
 
 /* Create an active/current tablink class */
 button.tablinks.active {
-    background-color: darkcyan;
-    color: white;
+    color: black;
     border: none;
 }
 
@@ -485,17 +513,5 @@ div.twocolumn div.left {
 div.twocolumn div.right {
     width: 50%;
     float: right;    
-
-/* ------ PI Improvements ------ */
-#translation-select {
-    display: flex;
-    align-items: center;
-    margin-left: 0.5em;
-    margin-top: 0.625em;
-}
-
-#language-select {
-    margin-left: 0.5em;
-}
 
 
