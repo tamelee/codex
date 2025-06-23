@@ -64,12 +64,11 @@ import           Codex.Types
 import           Codex.Utils
 import           Codex.Tester
 import           Codex.Tasks
+import           Codex.Translate (translateMarkdown)
 import           Data.Version                                (showVersion)
 import           Paths_codex                                 (version)
-
--- | PI Improvements +++++++
-import          Codex.Translate (translateMarkdown)
            
+
 
 -- | handle file requests
 handlePage :: FilePath -> Codex ()
@@ -166,6 +165,7 @@ routes :: [(ByteString, Codex ())]
 routes =
   [ ("",        routeWith routeAppUrl)
   , ("/static", (getStaticRoot >>= serveDirectory) <|> notFound)
+  -- route to receive shibboleth idp response with user attributes
   , ("/shibboleth-callback", handleShibbolethCallback)
   ]
 

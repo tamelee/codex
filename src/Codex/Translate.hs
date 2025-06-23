@@ -35,23 +35,23 @@ translateMarkdown (Pandoc meta blocks) targetLang = do
   return $ Just (Pandoc meta translatedBlocks)
 
 translateBlock :: String -> Block -> Codex Block
-translateBlock lang (Plain inlines) = Plain <$> translateInlineGroup lang inlines
-translateBlock lang (Para inlines) = Para <$> translateInlineGroup lang inlines
-translateBlock lang (Header level attr inlines) = Header level attr <$> translateInlineGroup lang inlines
+translateBlock lang (Plain inlines) = Plain <$> translateInlines lang inlines
+translateBlock lang (Para inlines) = Para <$> translateInlines lang inlines
+translateBlock lang (Header level attr inlines) = Header level attr <$> translateInlines lang inlines
 translateBlock lang (OrderedList attr items) = OrderedList attr <$> mapM (mapM (walkM (translateBlock lang))) items
 translateBlock lang (BulletList items) = BulletList <$> mapM (mapM (walkM (translateBlock lang))) items
 translateBlock _ blk = return blk
 
 
--- | ++++++++++ INLINE CONCATENATION ++++++++++
+-- | ++++++++++ INLINE SPLIT & JOIN ++++++++++
 
 data InlineChunk = Translatable [Inline] | Untranslatable [Inline]
 
 -- | Translates blocks of text while preserving others
-translateInlineGroup :: String -> [Inline] -> Codex [Inline]
-translateInlineGroup lang inlines = do
-  translatedChunks <- mapM translateChunk (chunkInlines inlines)
-  return $ mergeChunksWithSpacing translatedChunks
+translateInlines :: String -> [Inline] -> Codex [Inline]
+translateInlines lang inlines = do
+  translatedChunks <- mapM translateChunk (splitInlines inlines)
+  return $ joinInlines translatedChunks
   where
     translateChunk :: InlineChunk -> Codex [Inline]
     translateChunk (Translatable is) = do
@@ -61,9 +61,9 @@ translateInlineGroup lang inlines = do
     translateChunk (Untranslatable is) = return is
 
 -- | Splits inlines into blocks that should or should not be translated
-chunkInlines :: [Inline] -> [InlineChunk]
-chunkInlines [] = []
-chunkInlines xs = go xs
+splitInlines :: [Inline] -> [InlineChunk]
+splitInlines [] = []
+splitInlines xs = go xs
   where
     go [] = []
     go (x:xs) =
@@ -78,8 +78,8 @@ chunkInlines xs = go xs
     isTranslatable _ = False
 
 -- | Joins blocks inline
-mergeChunksWithSpacing :: [[Inline]] -> [Inline]
-mergeChunksWithSpacing = foldr insertChunk []
+joinInlines :: [[Inline]] -> [Inline]
+joinInlines = foldr insertChunk []
   where
     insertChunk [] acc = acc
     insertChunk chunk [] = chunk
@@ -132,7 +132,7 @@ splitPreservingSpaces txt
     isSpaceLike c = c == ' ' || c == '\n' || c == '\t'
 
 
--- | ++++++++++ DEEPL API ++++++++++ 
+-- | ++++++++++ DEEPL API REQUEST ++++++++++ 
 
 sendTranslationRequest :: T.Text -> String -> Codex T.Text
 sendTranslationRequest text targetLang = do

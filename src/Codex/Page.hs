@@ -312,6 +312,45 @@ formatDiffs txt1 txt2
     transform (Both common _)   = pretext common
 
 
+-- change the order of diffs so that deletions come before insertions
+reorderDiffs :: [Diff a] -> [Diff a]
+reorderDiffs (Second a : First b : rest)
+   = First b : reorderDiffs (Second a : rest)
+reorderDiffs (a : rest)
+  = a : reorderDiffs rest
+reorderDiffs []
+  = []  
+
+joinDiffs :: Semigroup a => [Diff a] -> [Diff a]
+joinDiffs (First a : First b : rest)
+  = joinDiffs (First (a<>b) : rest)
+joinDiffs (Second a : Second b : rest)
+  = joinDiffs (Second (a<>b) : rest)
+joinDiffs (a : rest)
+  = a : joinDiffs rest
+joinDiffs []
+  = []
+
+
+-- preformated text preserving spaces 
+pretext :: Text -> P.Inlines
+pretext = P.text . T.map nbsp 
+  where
+    -- change spaces to non-breakable spaces
+    nbsp :: Char -> Char
+    nbsp ' ' = '\160'
+    nbsp x   = x
+
+
+-- change softbreaks to hardbreaks
+hardenBreaks :: P.Inlines -> P.Inlines
+hardenBreaks = walk harden
+  where
+    harden :: P.Inline -> P.Inline
+    harden P.SoftBreak = P.LineBreak
+    harden i = i
+
+
 -- ++++++++++++++++++++++++++++++++++++++++++++++++
 -- | PI Improvements                              
 -- ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -322,14 +361,11 @@ writeMarkdownFile :: MonadIO m => FilePath -> Pandoc -> m ()
 writeMarkdownFile filepath (Pandoc (Meta metaMap) blocks) = liftIO $ do
   let (blockMetaMap, yamlMetaMap) = Map.partition isMetaBlocks metaMap
       yamlText = renderYamlMeta (Meta yamlMetaMap)
-
       -- YAML on top + Normal blocks
       contentBlocks = RawBlock "markdown" yamlText : blocks
-
       -- Render each MetaBlock as a YAML section at the end
       metaBlockTexts = map renderBlockMeta (reverse (Map.toList blockMetaMap))
       metaBlockRawBlocks = map (RawBlock "markdown") metaBlockTexts
-
       -- Builds the final document
       fullDoc = Pandoc nullMeta (contentBlocks ++ metaBlockRawBlocks)
 
@@ -372,6 +408,7 @@ writeMarkdownFile filepath (Pandoc (Meta metaMap) blocks) = liftIO $ do
     inlineToText Space   = " "
     inlineToText _       = ""
 
+
 -- | Render YAML from normal metadata
 renderYamlMeta :: Meta -> Text
 renderYamlMeta (Meta metaMap) =
@@ -400,42 +437,3 @@ renderYamlMeta (Meta metaMap) =
     inlineToText _       = ""
     
 -- ++++++++++++++++++++++++++++++++++++++++++++++++
-
--- change the order of diffs so that deletions come before insertions
-reorderDiffs :: [Diff a] -> [Diff a]
-reorderDiffs (Second a : First b : rest)
-   = First b : reorderDiffs (Second a : rest)
-reorderDiffs (a : rest)
-  = a : reorderDiffs rest
-reorderDiffs []
-  = []  
-
-joinDiffs :: Semigroup a => [Diff a] -> [Diff a]
-joinDiffs (First a : First b : rest)
-  = joinDiffs (First (a<>b) : rest)
-joinDiffs (Second a : Second b : rest)
-  = joinDiffs (Second (a<>b) : rest)
-joinDiffs (a : rest)
-  = a : joinDiffs rest
-joinDiffs []
-  = []
-
-
--- preformated text preserving spaces 
-pretext :: Text -> P.Inlines
-pretext = P.text . T.map nbsp 
-  where
-    -- change spaces to non-breakable spaces
-    nbsp :: Char -> Char
-    nbsp ' ' = '\160'
-    nbsp x   = x
-
-
--- change softbreaks to hardbreaks
-hardenBreaks :: P.Inlines -> P.Inlines
-hardenBreaks = walk harden
-  where
-    harden :: P.Inline -> P.Inline
-    harden P.SoftBreak = P.LineBreak
-    harden i = i
-    
