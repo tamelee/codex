@@ -25,9 +25,12 @@ import qualified Data.Text.IO as T
 import           Data.Maybe (fromMaybe)
 import           Text.Printf
 
-import           Control.Exception (catch)
+import           Control.Exception (catch, SomeException)
 import           System.Directory (copyFile)
 import           System.Process (readProcessWithExitCode)
+
+import qualified Text.Pandoc.Builder as B
+
 
 
 -- | build and run scripts for testing standalone programs
@@ -61,7 +64,7 @@ clangBuild = do
         T.writeFile c_file code
         chmod (executable . readable . writeable) tmpdir
         chmod readable c_file
-        runCompiler (Just limits) cc (map T.pack cc_args ++ [T.pack c_file, "-o", T.pack exe_file])
+        runProcess (Just limits) cc (cc_args ++ [c_file, "-o", exe_file])
         return exe_file
   return (Build (=="c") make nsjailExec)
 
@@ -77,7 +80,7 @@ pythonBuild = do
         chmod readable pyfile
         return pyfile
   let run pyfile dir args stdin =
-        safeExec limits python dir (T.pack pyfile : args) stdin
+        safeExec limits python dir (pyfile : map T.unpack args) stdin
   return (Build (=="python") make run)
 
 -- | builder for Java programs
@@ -95,11 +98,12 @@ javaBuild = do
         T.writeFile java_file code
         chmod (executable . readable . writeable) tmpdir
         chmod readable java_file
-        runCompiler (Just limits) javac (map T.pack javac_args ++ [T.pack java_file])
+        runProcess (Just limits) javac (javac_args ++ [java_file])
         return classfile
   let run classfile cwd args stdin = do
         let classpath = takeDirectory classfile
-        let args' = map T.pack java_args ++ ["-cp", T.pack classpath, T.pack classname] ++ args
+        let args' = map T.unpack $
+              map T.pack java_args ++ ["-cp", T.pack classpath, T.pack classname] ++ args
         safeExec limits java cwd args' stdin
   return (Build (=="java") make run)
 
@@ -116,7 +120,7 @@ haskellBuild = do
         T.writeFile hs_file code
         chmod (readable . writeable . executable) tmpdir
         chmod readable hs_file        
-        runCompiler (Just limits) ghc (map T.pack ghc_args ++ [T.pack hs_file, "-o", T.pack exe_file])
+        runProcess (Just limits) ghc (ghc_args ++ [hs_file, "-o", exe_file])
         return exe_file
   return (Build (=="haskell") make nsjailExec)
 
@@ -141,7 +145,7 @@ stdioTester Build{..} = tester "stdio" $ do
         mapM_ (\f -> copyFile f (tmpdir </> takeFileName f)) files
         exe_file <- makeExec tmpdir code
         runTests (runExec exe_file (Just tmpdir)) $ zip3 argfiles' inputs outputs)
-    `catch` return
+    `catch` (\(e :: SomeException) -> return $ runtimeError $ B.para $ B.text $ T.pack (show e))
 
 
 runTests ::
@@ -154,7 +158,8 @@ runTests action tests =
   where
     total = length tests
     loop _ [] =
-      return $ accepted $ "Passed " <> T.pack (show total) <> " tests"
+      return $ accepted $ B.para $
+        B.text "Passed " <> B.text (T.pack $ show total) <> B.text " tests"
     loop n ((opt_arg_file, in_file, out_file) : tests) = do
       in_txt <- T.readFile in_file
       out_txt <- T.readFile out_file
@@ -169,29 +174,41 @@ runTests action tests =
 
           
 numberResult :: Int -> Int -> String -> Result -> Result
-numberResult num total args Result{..}
-  = Result resultStatus (test <> resultReport)
-  where test
-          = T.pack (printf "*** Test %d / %d ***\n\n" num total) <>
-          "Command-line arguments:\n" <> T.pack args <> "\n"
+numberResult num total args Result{..} =
+  Result resultStatus (Report test <> resultReport)
+  where
+    test =
+      B.para (B.strong (B.text "*** Test "
+                        <> B.text (T.pack $ show num)
+                        <> B.text " / "
+                        <> B.text (T.pack $ show total)
+                        <> B.text " ***"))
+      <> B.para (B.text "Command-line arguments:")
+      <> B.para (B.text (T.pack args))
           
 
 
-classify ::  Text -> Text -> (ExitCode, Text, Text) -> Result
+classify :: Text -> Text -> (ExitCode, Text, Text) -> Result
 classify input expected (ExitSuccess, out, _) 
-  | T.strip out == T.strip expected
-  = accepted "OK"
-  | otherwise
-  = wrongAnswer $ textDiff expected input out
+  | T.strip out == T.strip expected =
+      accepted $ B.para $ B.text "OK"
+  | otherwise =
+      wrongAnswer $ B.para $ B.text $ textDiff expected input out
 classify input _ (ExitFailure c, _, err)
-  | match "Time Limit" err   = timeLimitExceeded $ textInput input
-  | match "Memory Limit" err = memoryLimitExceeded $ textInput input 
-  | match "Output Limit" err = runtimeError $ T.unlines [textInput input, err]
-  | otherwise = runtimeError $ T.unlines
-                [ textInput input, ""
-                , "Program exited with non-zero status: " <> T.pack (show c)
-                , err
-                ]
+  | match "Time Limit" err =
+      timeLimitExceeded $ B.para $ B.text $ textInput input
+  | match "Memory Limit" err =
+      memoryLimitExceeded $ B.para $ B.text $ textInput input
+  | match "Output Limit" err =
+      runtimeError $ B.para $ B.text $ T.unlines [textInput input, err]
+  | otherwise =
+      runtimeError $ B.para $ B.text $ T.unlines
+        [ textInput input
+        , ""
+        , "Program exited with non-zero status: " <> T.pack (show c)
+        , err
+        ]
+
 
 
 textInput :: Text -> Text
