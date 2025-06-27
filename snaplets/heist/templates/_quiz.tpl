@@ -5,6 +5,18 @@
       <li><a href="${page-parent-url}" class="icon"
 	     title="Back to the parent page"><apply template="_icon_back"/></a></li>    
     </if-parent>
+    <li>
+      <div id="translation-select">
+        <label for="language-select"> Translate:</label>
+        <select id="language-select" onchange="changeLanguage()">
+          <option value="">Original</option>
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+    </li>
   </apply>
     
   <div class="description">
@@ -63,6 +75,7 @@
     }; 
    
   </script>
+  <script type="text/javascript" src="/static/js/changelang.js"/>
 </apply>
 
 
