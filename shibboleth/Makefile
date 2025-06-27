@@ -50,13 +50,22 @@ restart:
 	sudo systemctl restart shibd
 
 
-# -------------------
-# Altera a chave e certificado Shibboleth SP pela correta
-# sudo cp sp-cert.pem /etc/shibboleth/sp-cert.pem
-# sudo cp sp-key.pem /etc/shibboleth/sp-key.pem
+# -------- IMPORTANTE
 
-# Talvez pode ser necessario atribuir permissoes 
-# sudo chmod 644 /etc/shibboleth/sp-key.pem
-# sudo chmod 644 /etc/shibboleth/idp-up-metadata.xml
+# Altera a chave e certificado Shibboleth SP pela correta 
+#    (presentes no diretorio atual no ficheiro zip)
+# $ sudo cp sp-cert.pem /etc/shibboleth/sp-cert.pem
+# $ sudo cp sp-key.pem /etc/shibboleth/sp-key.pem
+
+# [Por vezes] pode ser necessario guardar o metadata da idp manualmente
+#    (caso o Shibboleth.sso/Login nao consiga encontrar o idp da UP) 
+# $ curl -o idp-up-metadata.xml https://wayf.up.pt/idp/shibboleth
+# $ sudo cp idp-up-metadata.xml /etc/shibboleth/idp-up-metadata.xml
+
+# [Por vezes] pode ser necessario atribuir permissoes 
+#    (caso o shib nao consiga ler os ficheiros)
+# $ sudo chmod 644 /etc/shibboleth/sp-key.pem
+# $ sudo chmod 644 /etc/shibboleth/idp-up-metadata.xml
+
 # -------------------
 
